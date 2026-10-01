@@ -83,3 +83,56 @@ draws, so the set-valued loss `-log Σ_{m ∈ Opt} softmax(z)_m` is not a refine
 the difference between training on truth and training on noise. **Any rung of this ladder
 that distils from a solver inherits it**, and it will present as "the network is bad at
 Connect 4" rather than "the labels were wrong".
+
+
+---
+
+## ADDENDUM — the C solver exists and it is verified
+
+`ctool.c`, a single self-contained C11 program. The two known-answer checks run first and
+are not skippable:
+
+```
+check 1  empty board, value for P1 = -1   expected -1   OK
+check 2  three in the centre, value for P1 = +1   expected +1   OK
+```
+
+**54,166 positions, plies 1..6, labels solved to full depth** (not to the export horizon, so
+a label is the true game value and not an artefact of how deep we looked). FNV-1a 64 digest
+`0x4ef8351a5c319637`. 470,887 nodes, 4M-entry transposition table.
+
+The export is normalised to **player zero**: second column is p0's stones, value is from
+p0's point of view, for every row regardless of ply parity.
+
+### Five bugs, and every one of them produced a plausible number
+
+1. **C operator precedence.** `b + (Board)1 << 27` parses as `(b + 1) << 27`, because `+`
+   binds tighter than `<<`. It is *accidentally correct on an empty board* and silently
+   wrong on every position after the first stone.
+2. **The column masks were not column masks.** `(1 << (k*STRIDE)) & 0x7F` evaluates to `0`
+   for column 1. So every column except column 0 read as "height zero, always playable" and
+   the search explored a board that does not exist.
+3. **The perspective swap double-counted the stone.** The opponent's stones are
+   `mask ^ pos`, not `m2 ^ pos` — the move we just made belongs to the current player and
+   has to cancel. The two known-answer checks did *not* catch this, because `has_won()` fires
+   before the recursion. The export's stone-count control caught it immediately.
+4. **The export's sign convention flipped with row parity.** Every 1-ply row read +1 and
+   every 2-ply row read −1, which looks exactly like a real signal and was a sign flip.
+5. **My own new control was vacuous.** I called `rewind()` on a file I had already
+   `fclose()`d, so it read nothing and reported `OK (0 rows)`. A control that passes on zero
+   rows is not a control.
+
+And two controls that were **wrong in the other direction**: the first stone-count check
+asserted "player one has at most one stone", which is trivially true at ply 1 and false at
+ply 6 where both players have three — so it rejected a correct export for being correct. The
+invariant is `|p0 − p1| ≤ 1`.
+
+### What this says about the original plan
+
+The plan was to extend the Python bitboard. **That was the wrong plan** and this file is the
+evidence: five bugs, each of which ran to completion and produced a number. A representation
+you cannot reason about is a measurement instrument you cannot check — in Python I abandoned
+the bitboard for flat tuples and the solver became correct, then became too slow. C is where
+the bitboard is checkable *and* fast.
+
+**Connect 4 ground truth is unblocked. L6 is DONE.**
