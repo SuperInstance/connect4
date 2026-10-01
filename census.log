@@ -1,0 +1,64 @@
+== 1. FNV-1a 64, hand rolled, no library ==
+  [ ok ] fnv1a64("")       == cbf29ce484222325
+  [ ok ] fnv1a64("a")      == af63dc4c8601ec8c
+  [ ok ] fnv1a64("foobar") == 85944171f73967e8
+  [ ok ] byte-loop FNV-1a == string FNV-1a on an export line
+  [ ok ] FNV-1a is incremental across lines
+
+== 1b. value encoding self-check ==
+  [ ok ] LOSS(2) < LOSS(3) < LOSS(9) < DRAW < WIN(1) < WIN(2) < WIN(9)
+  [ ok ] V_DIST inverts the encoding
+  [ ok ] mirror is order-reversing and adds one half-move
+  [ ok ] V_SIGN reads the outcome
+
+== 2. bitboard layout, computed at init, not hard-coded ==
+  BOTTOM_MASK = 0x0040810204081
+  BOARD_MASK  = 0x0fdfbf7efdfbf
+  [ ok ] BOARD_MASK popcount == 42
+  [ ok ] STRIDE == HEIGHT+1 == 7
+  [ ok ] BOARD_MASK carries no sentinel bit
+  [ ok ] BOTTOM_MASK popcount == 7
+  [ ok ] BOARD_MASK == BOTTOM_MASK * 63
+  [ ok ] each of the 7 columns holds exactly 6 playable squares
+  [ ok ] possible_mask(empty) == BOTTOM_MASK (empty board has 7 moves, not 0)
+  [ ok ] possible_mask(full) == 0
+  [ ok ] consecutive drops in a column take rows 0..5 in order
+  [ ok ] drop_bit on a full column is 0
+  [ ok ] a full column does not make the next column playable
+  [ ok ] no column carry past the sentinel row
+
+== 3. bitboard vs flat-array reference: win detection AND threat
+      detection, on EVERY distinct legal position to ply 1 ==
+      ply  0:          1 positions
+      ply  1:          7 positions
+  positions compared : 8
+  is_win mismatches  : 0
+  threat mismatches  : 0
+  structural faults  : 0
+  seconds            : 0.00
+  [ ok ] bitboard primitives agree with the flat reference everywhere
+
+== 4. TT key (cur+occ) injective, on EVERY state to ply 1 ==
+  states walked      : 8
+  key collisions     : 0
+  seconds            : 0.0
+  [ ok ] no two distinct states share a TT key
+
+  TT bank 0: 1 MiB, 65536 entries
+
+== distinct legal position census, no solving, to ply 11 ==
+ply  0  legal              1  terminal            0
+ply  1  legal              7  terminal            0
+ply  2  legal             49  terminal            0
+ply  3  legal            238  terminal            0
+ply  4  legal           1120  terminal            0
+ply  5  legal           4263  terminal            0
+ply  6  legal          16422  terminal            0
+ply  7  legal          54131  terminal         1288
+ply  8  legal         182383  terminal         2932
+ply  9  legal         538774  terminal        29054
+ply 10  legal        1618398  terminal        61878
+ply 11  legal        4295422  terminal       376035
+TOTAL distinct legal non-terminal positions to ply 11: 6711208
+TOTAL terminal positions to ply 11:                   471187
+seconds: 1.6
