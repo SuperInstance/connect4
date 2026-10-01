@@ -1,0 +1,33 @@
+  ctool — Connect 4 exact solver, 7x6, four in a row
+
+  check 1  empty board, value for P1 = -1   expected -1   OK
+  check 2  three in the centre, value for P1 = +1   expected +1   OK
+  both known-answer checks passed
+
+  exporting positions at plies 1..6 (labels solved to full depth)
+    ply  1             7 positions
+    ply  2            49 positions
+    ply  3           343 positions
+    ply  4          2025 positions
+    ply  5         10003 positions
+    ply  6         41739 positions
+
+  SELF-CHECKS ON THE EXPORT
+    rows read back                 54166   OK
+    1-ply rows                     7  (expect exactly 7)  OK
+    1-ply rows all valued -1       7/7  OK
+    |p0| - |p1| <= 1 everywhere   0 bad of 54166  OK
+    first row: p0 has 1, p1 has 0 OK
+    all export controls passed
+
+  MANIFEST
+    positions         54166
+    value histogram   loss(-1) 19924   unknown(0) 0   win(+1) 34242
+    FNV-1a 64 digest  0x4ef8351a5c319637
+    nodes visited     470887
+    TT entries        4194304
+    file              c4_ground_truth.txt
+
+  convention: rows are `mask pos value` in decimal, p0 to move, value from
+  p0's point of view. 0 means the full-depth solve found neither a forced win
+  nor a forced loss within the horizon -- it is NOT a draw claim.
